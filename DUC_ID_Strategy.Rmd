@@ -1,0 +1,45 @@
+---
+title: "DUC Well Identification Notebook"
+output: html_notebook
+---
+
+# Tips on working with RMarkdown notebook {-}
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+
+# Introduction
+
+The DUC (Drilled but Uncompleted) wells play an important role in balancing the economy of oil and gas production by providing smoothing effect on the fluctuating difference between supply and demand in the market. 
+
+The subject of 2020 Datathon competition is identifying DUC wells.
+
+# DUC Well characteristics
+
+DUC wells are drilled but not completed! More specifically, these are wells that have reached the target depth and casings are installed to protect the well and the formation. The wells however are not completed which means the production casing is not installed and no other completion activities are performed to bring the well in production. This might suggest the criteria for identifying the wells, as follows:
+
+1. Drilling is complete and well has reached the target total depth
+2. Well is not completed as in:
+    1. Production casing is not installed
+    2. No perforation or fracking has been performed
+    3. No stimulation / acidization activity has been performed
+3. The well has no production beyond a defined threshold.     
+    
+There are wells that produce in spite of not being completed. these wells will be excluded from the DUC category if the cumulative production volume or time is beyond a certain threshold, which needs to be defined as part of the criteria.
+
+# Roadmap and strategy for DUC well modeling
+
+Methods and algorithems need to be selected to associate the data features with the DUC well types. Number of method might be considered before the appropriate model is fitted. those techniques are discussed as follows.
+
+## Supervised Learning
+
+### Decision Tree
+
+Decision-Tree based classification methods might be able to classify the data into DUC and non-DUC wells using the criteria defined.
+
+**_Under Development_**
