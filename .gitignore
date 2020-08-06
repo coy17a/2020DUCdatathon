@@ -138,3 +138,5 @@ dmypy.json
 cython_debug/
 #file
 *.csv
+submission.ipynb
+submission2.ipynb
