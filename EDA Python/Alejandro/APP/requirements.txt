@@ -1,0 +1,7 @@
+matplotlib==3.2.2
+numpy==1.18.5
+altair==4.1.0
+pandas==1.0.3
+streamlit==0.62.0
+Pillow==7.2.0
+protobuf==3.12.4
