@@ -1,0 +1,71 @@
+---
+title: "DUC Well Identification Notebook"
+output: html_notebook
+---
+
+# Tips on working with RMarkdown notebook {-}
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+
+# Introduction
+
+The DUC (Drilled but Uncompleted) wells play an important role in balancing the economy of oil and gas production by providing smoothing effect on the fluctuating difference between supply and demand in the market. 
+
+The subject of 2020 Datathon competition is identifying DUC wells.
+
+# DUC Well characteristics
+
+DUC wells are drilled but not completed! More specifically, these are wells that have reached the target depth and casings are installed to protect the well and the formation. The wells however are not completed which means the production casing is not installed and no other completion activities are performed to bring the well in production. This might suggest the criteria for identifying the wells, as follows:
+
+1. Drilling is complete and well has reached the target total depth
+2. Well is not completed as in:
+    1. Production casing is not installed
+    2. No perforation or fracking has been performed
+    3. No stimulation / acidization activity has been performed
+3. The well has no production. Any production record associated with a well disqualify it as a DUC Well.     
+    
+
+# Roadmap and strategy for DUC well modeling
+
+1. DUCs will be identified using the criteria in above. The criteria will be coded to create a binary identifier to tag well that are DUC with 1 and the rest as 0. The process has two step filter application to the "wellHeader" subeset as the master list. 
+        a. First, all the wells from the "wellPerf" which meet the criteria for being through completion activities are removed from the master list resulting in an interim list.
+        b. Second, the wells from "wellProduction" which are showing production records (any product type) will be removed from the interim list, which results in a table listing Wells that are potentially qualified as DUC.
+
+2. Classification methods will be used under unsupervised learning to find patterns which may be associated with the DUC wells. 
+
+3. the supervised learning might be performed using the DUC identifier from earlier steps.
+
+Methods and algorithms need to be selected to associate the data features with the DUC well types. Number of method might be considered before the appropriate model is fitted. those techniques are discussed as follows.
+
+# EDA
+
+Well header file will be the master list providing all the wells. before filtering for DUC wells, the subsets are manipulated for more suitable format and structure for exploratory data analysis (EDA) and subsequent modeling. 
+
+1. Duplicate records exist in "wellProduction" table. Those are removed first
+2. Table is transformed into wide format using production types
+3. Table is summarised to create new columns for: 
+    a. min and max of production periods, 
+    b. count of production period,  
+    c. sum of production volume for each production type
+        
+Grouping on Asset Ids and production periods would be applied to the table summary. 
+
+The resulting production table would be used for analyzing data series with relation to DUC wells. Should the time be ample for further analysis, the economy of DUC Wells and their impact on the overall production profile for the region might be researched.  
+
+## Unsupervised Learning
+
+**_Under Development_**
+
+## Supervised Learning
+
+### Decision Tree
+
+Decision-Tree based classification methods might be considered to classify the data into DUC and non-DUC wells using the criteria defined. 
+
+**_Under Development_**
