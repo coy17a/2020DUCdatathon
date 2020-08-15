@@ -102,30 +102,50 @@ def dispaly_eda():
 
 def duc_analysis(wh,wp,wt):
         st.header('Datathon DUC Well Identification')
-        
-        list1,m1,m2,m3,m4 = duc_wells(wh,wp,wt)
-        st.write(f'Number of wells with current Status not in ["Pumping", "Flowing", "Gas Lift"] : {m1}')
-        st.write(f'Number of wells not in perf_treatment data nor in well_production data: {m2}') 
-        st.write(f'Potential number of DUC wells using only the CompletionActivity criteria from perftreatment table: {m3}')
-        st.write(f'Wells with no production that have also not been completed: {m4}')
-        st.success(f'Total DUC wells in dataset: {len(list1)}')
-        ddf= wh[wh['EPAssetsId'].isin(list1)]
-        ddf= clean_pipeline(ddf)
-        desc = ddf.describe().T
-        #st.write(ddf.astype('object'))
-        st.write(desc)
-        st.subheader('Geographical Location')
-        folium_static(map_wells(ddf))
-        st.subheader('DUCs Exploration')
-        cols = list(ddf.columns)
-        x = st.selectbox('X Variable',cols,index=13)
-        y = st.selectbox('Y Variable',cols,index=14)
-        color = st.selectbox('Color Variable',cols,index=7)
-        ddf=sanitize_dataframe(ddf)
-        st.altair_chart(alt.Chart(ddf).mark_bar(size=8).encode(
-        x=x,
-        y= y,
-        color=color).properties(width=700,height=300))
+        st.sidebar.subheader('DUC Identification Menu')
+        ducs,m1,m2,m3,m4,wellheader,wellproduction,perftreatment = duc_wells(wh,wp,wt)
+        options = ['General Information','Time Analysis','DUC Duration','More']
+        nav = st.sidebar.radio('Nav',options)
+        if nav == 'General Information':
+            
+            st.write(f'Number of wells with current Status not in ["Pumping", "Flowing", "Gas Lift"] : {m1}')
+            st.write(f'Number of wells not in perf_treatment data nor in well_production data: {m2}') 
+            st.write(f'Potential number of DUC wells using only the CompletionActivity criteria from perftreatment table: {m3}')
+            st.write(f'Wells with no production that have also not been completed: {m4}')
+            st.success(f'Total DUC wells in dataset:{len(ducs)}')
+            ddf= wh[wh['EPAssetsId'].isin(ducs)]
+            ddf= clean_pipeline(ddf)
+            desc = ddf.describe().T
+            #st.write(ddf.astype('object'))
+            st.write(desc)
+            st.subheader('Geographical Location')
+            folium_static(map_wells(ddf))
+            st.subheader('DUCs Exploration')
+            cols = list(ddf.columns)
+            x = st.selectbox('X Variable',cols,index=13)
+            y = st.selectbox('Y Variable',cols,index=14)
+            color = st.selectbox('Color Variable',cols,index=7)
+            ddf=sanitize_dataframe(ddf)
+            st.altair_chart(alt.Chart(ddf).mark_bar(size=8).encode(
+            x=x,
+            y= y,
+            color=color).properties(width=700,height=300))
+        if nav == 'Time Analysis':
+            ducs_final = duc_time(ducs,wellheader, wellproduction)
+            desc = ducs_final.describe()
+            st.subheader('Days of Uncompleted Status')
+            hist_days_uncomplete(ducs_final,step=50)
+            st.subheader('Days of Uncompleted Status grouped by Period')
+            ducs_binned(ducs_final)
+        if nav =='DUC Duration':
+            non_ducs_df=non_duc_wells_duration(wellheader,wellproduction,perftreatment,ducs)
+            st.subheader('Time of Uncompleted Status in the data set')
+            hist_days_uncomplete(non_ducs_df,step=25)
+            st.subheader('Time of Uncompleted Status in the data set by: ')
+            facet = st.selectbox('Facet By:',['Formation','PSACAreaName','Field'],index=0)
+            non_ducs_per_formation(non_ducs_df,25,facet)
+
+
 
 def eda_plot(df,x,y,color):
     sns.scatterplot(x=x,y=y,hue=color,data=df)
@@ -146,12 +166,13 @@ def load_production():
      return wp
 
 def load_header():
-     wh = pd.read_csv("data/WellHeader_Datathon.csv",index_col=False)
-     #wh = clean_pipeline(wh)
-     return wh
+    datecolumns = ['LicenceDate', 'ConfidentialReleaseDate','AbandonDate', 'SurfAbandonDate', 'SpudDate', 'FinalDrillDate', 'RigReleaseDate','StatusDate','CompletionDate']  
+    wh = pd.read_csv("data/WellHeader_Datathon.csv",index_col=False,parse_dates=datecolumns)
+    #wh = clean_pipeline(wh)
+    return wh
 
 def load_treatment():
-     wt = pd.read_csv("data/PerfTreatments.csv",index_col=False)
+     wt = pd.read_csv("data/PerfTreatments.csv",index_col=False,parse_dates=['ActivityDate'])
      #clenaing of wt dataset
      return wt
 
@@ -181,7 +202,7 @@ def single_Well_plot1(well_id,df1):
         x=alt.X('ProdPeriod',timeUnit='yearmonthdate'),
         y='Volume',
         color='ProdType',
-         facet=alt.Facet('EPAssetsId', columns=3)
+        facet=alt.Facet('EPAssetsId', columns=3)
         ).properties(title='Wells',
     width=180,
     height=150
