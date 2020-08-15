@@ -93,7 +93,7 @@ def dispaly_eda():
         st.write(eda_plot(wh,x,y,color))
         
     elif eda_tab == 'Production':
-        st.subheader('Example: Well produciton by product type')
+        st.subheader('Example: Well production by product type')
         well_id = wp['EPAssetsId'].head(20).unique()
         default_id = list(well_id[0:5])
         wells = st.multiselect('Please Select wells',well_id)
@@ -238,10 +238,11 @@ def map_wells(wh):
 def about_us():
     st.header('The Team')
     st.markdown(''' 
-### Ijeoma:''') 
+### Ijeoma Odoko:''') 
     ij = Image.open('Img/ijeoma.jpeg')
     st.image(ij,width=200)
     st.markdown('''
+    I am a Business Intelligence Analyst with approximately 8 years of experience as a Project Engineer within the Canadian Oil and Gas Industry delivering pipeline and facility projects across Alberta and British Columbia. I enjoy performing data cleaning, exploratory data analysis, and preparing data visualizations to provide actionable insights. 
 ### Gabriel:
 ### Korang
 ### Mohammed:
@@ -290,11 +291,12 @@ Methods and algorithms need to be selected to associate the data features with t
 
 Well header file will be the master list providing all the wells. before filtering for DUC wells, the subsets are manipulated for more suitable format and structure for exploratory data analysis (EDA) and subsequent modeling. 
 
-    1. Duplicate records exist in "wellProduction" table. Those are removed first
+    1. Duplicate records exist in "wellProduction" table. Group by for ['EPAssetsId', 'ProdPeriod', 'ProductType'] with 'Volume' aggregrated performed to get rid of duplicate values
     2. Table is transformed into wide format using production types
     3. Table is summarised to create new columns for: 
         a. min and max of production periods, 
-        b. count of production period,  
+        b. count of production period.
+    4.  Table also aggregrated to create total production for each ['EPAssetsId', 'ProductType']
         c. sum of production volume for each production type
         
 Grouping on Asset Ids and production periods would be applied to the table summary. 
