@@ -7,15 +7,234 @@ import altair as alt
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+import folium 
+from folium.plugins import MarkerCluster
+from streamlit_folium import folium_static
 from PIL import Image
+from altair.utils import sanitize_dataframe
+from helper.duc import *
+
 
 def main():
     st.sidebar.title('DUC or not?' )
     tab_options = ['Home','What is a Duc?','EDA','Datathon Identification','Prediction','About Us']
     tab =st.sidebar.radio('Pages',tab_options)
     if tab == "What is a Duc?":
-        st.write('EIA Paper, maybe markdown from github....')
-        st.markdown('''
+        what_is_duc()
+    elif tab == 'EDA':        
+        dispaly_eda()
+
+    elif tab == 'Datathon Identification':
+        wp = load_production()
+        wh = load_header()
+        wt = load_treatment()
+        duc_analysis(wh,wp,wt)
+        
+
+    elif tab == 'Prediction':
+        st.set_option('deprecation.showfileUploaderEncoding', False)
+        st.subheader(' Predict DUC wells from new datasets')
+        uploaded_file = st.file_uploader("Upload Well Header CSV file", type="csv")
+        if uploaded_file is not None:
+            wh = pd.read_csv(uploaded_file)
+            #st.write(data.head())
+      
+        uploaded_file2 = st.file_uploader("Upload Production CSV file", type="csv")
+        if uploaded_file2 is not None:
+            wp = pd.read_csv(uploaded_file2)
+            #st.write(production.head())
+
+        uploaded_file3= st.file_uploader("Upload PerfTreatment CSV file", type="csv")
+        if uploaded_file3 is not None:
+            wt= pd.read_csv(uploaded_file3)
+            #st.write(perf.head())
+        st.subheader('Results')
+        if (uploaded_file != None) & (uploaded_file2 != None) & (uploaded_file3 != None):
+            duc_analysis(wh,wp,wt)
+
+    elif tab == 'About Us':
+        about_us()
+        
+    else: 
+        st.title('DUC or Not!! ')
+        st.write('Introduciton to the App ...................')
+        image = Image.open('Img/duc.png')
+       
+        st.image(image,use_column_width=True)
+        st.subheader('Untapped Energy DUC Datathon 2020: Data Conquerors')
+        home = Image.open('Img/home.png')
+        st.image(home,use_column_width=True)
+        
+
+def dispaly_eda():
+    with st.spinner('Loading..'):
+        wp = load_production()
+        wh = load_header()
+        wt = load_treatment()
+    options =['Well Header','Production','Perforation Treatments']
+    eda_tab=st.radio('Select Dataset',options)
+    if eda_tab == 'Well Header':
+        desc = wh.describe()
+        st.subheader('Well Header Data Numerical Stats')
+        wh=clean_pipeline(wh)
+        st.write(desc)
+        st.subheader('Geographical Location')       
+        #map_well = map_wells(wh)
+        #folium_static(map_well)
+        cols = list(wh.columns)
+        x = st.selectbox('X Variable',cols,index=12)
+        y = st.selectbox('Y Variable',cols,index=13)
+        color = st.selectbox('Color Variable',cols,index=6)
+        #wh=sanitize_dataframe(wh)
+        # st.altair_chart(alt.Chart(wh).mark_point().encode(
+        #     x=x,
+        #     y= y,
+        #     color=color).properties(width=700))#width=700,height=300))
+        st.write(eda_plot(wh,x,y,color))
+        
+    elif eda_tab == 'Production':
+        st.subheader('Example: Well produciton by product type')
+        well_id = wp['EPAssetsId'].head(20).unique()
+        default_id = list(well_id[0:5])
+        wells = st.multiselect('Please Select wells',well_id)
+        well_plot = single_Well_plot1(wells,wp)
+        st.write(well_plot)
+
+def duc_analysis(wh,wp,wt):
+        st.header('Datathon DUC Well Identification')
+        
+        list1,m1,m2,m3,m4 = duc_wells(wh,wp,wt)
+        st.write(f'Number of wells with current Status not in ["Pumping", "Flowing", "Gas Lift"] : {m1}')
+        st.write(f'Number of wells not in perf_treatment data nor in well_production data: {m2}') 
+        st.write(f'Potential number of DUC wells using only the CompletionActivity criteria from perftreatment table: {m3}')
+        st.write(f'Wells with no production that have also not been completed: {m4}')
+        st.success(f'Total DUC wells in dataset: {len(list1)}')
+        ddf= wh[wh['EPAssetsId'].isin(list1)]
+        ddf= clean_pipeline(ddf)
+        desc = ddf.describe().T
+        #st.write(ddf.astype('object'))
+        st.write(desc)
+        st.subheader('Geographical Location')
+        folium_static(map_wells(ddf))
+        st.subheader('DUCs Exploration')
+        cols = list(ddf.columns)
+        x = st.selectbox('X Variable',cols,index=13)
+        y = st.selectbox('Y Variable',cols,index=14)
+        color = st.selectbox('Color Variable',cols,index=7)
+        ddf=sanitize_dataframe(ddf)
+        st.altair_chart(alt.Chart(ddf).mark_bar(size=8).encode(
+        x=x,
+        y= y,
+        color=color).properties(width=700,height=300))
+
+def eda_plot(df,x,y,color):
+    sns.scatterplot(x=x,y=y,hue=color,data=df)
+    st.pyplot()
+def eda_plot2(df,x,y,color):
+    df=sanitize_dataframe(df)
+    plot= alt.Chart(df).mark_bar(size=5).encode(
+        x=x,
+        y= y,
+        color=color
+    )
+    return plot
+
+def load_production():
+     wp = pd.read_csv("data/WellProduction.csv",parse_dates=['ProdPeriod'],index_col=False)
+     #wp = pd.read_csv("data/WellProduction.csv",parse_dates=['ProdPeriod'],index_col=False)
+     #wp = wp.drop(columns=['WellHeader.Match'])
+     return wp
+
+def load_header():
+     wh = pd.read_csv("data/WellHeader_Datathon.csv",index_col=False)
+     #wh = clean_pipeline(wh)
+     return wh
+
+def load_treatment():
+     wt = pd.read_csv("data/PerfTreatments.csv",index_col=False)
+     #clenaing of wt dataset
+     return wt
+
+def clean_pipeline(df):
+    ## Select objects to convert to category type 
+    cat =list(df.dtypes[df.dtypes == 'object'].index)
+    df[cat] = df[cat].astype('category')
+    surface_columns=['Surf_LSD','Surf_Section','Surf_Township','Surf_Range','BH_LSD','BH_Section','BH_Township','BH_Range']
+    df[surface_columns]=df[surface_columns].astype(str)
+    df[surface_columns]=df[surface_columns].astype('category')
+    feature_selection = ['EPAssetsId', 'Province','UWI', 'CurrentOperator',
+       'CurrentStatus', 'WellType',
+        'Formation', 'Field', 'Pool',
+        'Surf_Location', 'Surf_Longitude',
+       'Surf_Latitude','GroundElevation', 'KBElevation', 'TotalDepth',
+       'SurfaceOwner', 'DrillingContractor', 'FinalDrillDate',
+       'RigReleaseDate', 'DaysDrilling', 'DrillMetresPerDay',
+       'WellProfile', 'PSACAreaCode', 'PSACAreaName',
+       'ProjectedDepth']
+    df = df[feature_selection]
+    return df
+
+
+def single_Well_plot1(well_id,df1):
+    df_well = df1[(df1['EPAssetsId'].isin(well_id)) & (df1['ProdType'] != 'Production Hours')]
+    chart= alt.Chart(df_well).mark_bar(size=5).encode(
+        x=alt.X('ProdPeriod',timeUnit='yearmonthdate'),
+        y='Volume',
+        color='ProdType',
+         facet=alt.Facet('EPAssetsId', columns=3)
+        ).properties(title='Wells',
+    width=180,
+    height=150
+    ).interactive()
+    return chart
+
+
+
+def map_wells(wh):
+    latitude = 54.73
+    longitude = -117.52704
+    wells_map = folium.Map(location=[latitude, longitude], zoom_start=5)
+    mc = MarkerCluster()
+    # add markers to map
+    for row in wh.itertuples():
+        mc.add_child(folium.CircleMarker(
+        #label = 'UWI: {}<br> Formation: {}<br> Current Operator: {}'.format(row.UWI,row.Formation,row.CurrentOperator)
+        #label = folium.Popup(label,parse_html=False)
+        location=[row.Surf_Latitude, row.Surf_Longitude],
+        radius=3, 
+        popup ='UWI: {uwi}<br>Formation: {formation}<br>Current Operatonr:{currentop}'.format(uwi=row.UWI,formation=row.Formation,currentop=row.CurrentOperator)
+        #popup=label, 
+        #color='blue',
+        #fill=True,
+        #parse_html=False,
+        
+        #fill_opacity=0.7,
+         ))
+    wells_map.add_child(mc)
+    #wells_map.save('wells.html’)
+    return(wells_map) 
+
+def about_us():
+    st.header('The Team')
+    st.markdown(''' 
+### Ijeoma:''') 
+    ij = Image.open('Img/ijeoma.jpeg')
+    st.image(ij,width=200)
+    st.markdown('''
+### Gabriel:
+### Korang
+### Mohammed:
+### Alejandro Coy:''')
+    image = Image.open('Img/me.jpeg')
+    st.image(image,width=200)
+    st.markdown('''
+I’ve been working on research, design, and implementation of new technologies for the heavy oil industry for the past 10 years.
+Since I worked on my bachelor’s thesis (where I analyzed thousands of flow measurements for gas natural mixtures), I’ve been passionate about data and the powerful insights obtained from experiments where the information is collected and process correctly.
+        ''')
+
+def what_is_duc():
+    st.write('EIA Paper, maybe markdown from github....')
+    st.markdown('''
 # Introduction
 
 The DUC (Drilled but Uncompleted) wells play an important role in balancing the economy of oil and gas production by providing smoothing effect on the fluctuating difference between supply and demand in the market. 
@@ -73,129 +292,8 @@ Decision-Tree based classification methods might be considered to classify the d
 
 **_Under Development_**
 ''' )
-    elif tab == 'EDA':
-         with st.spinner('Loading..'):
-            wp = load_produciton()
-            wh = load_header()
-            wt = load_treatment()
-         options =['Well Header','Production','Perforation Treatments']
-         eda_tab=st.radio('Select Dataset',options)
-         if eda_tab == 'Well Header':
-            desc = wh.describe()
-            st.subheader('Well Header Data Numerical Stats')
-            st.write(desc)
-            cols = list(wh.columns)
-            x = st.selectbox('X Variable',cols,index=0)
-            y = st.selectbox('Y Variable',cols,index=9)
-            color = st.selectbox('Color Variable',cols,index=5)
-            plot1 = eda_plot(wh,x,y,color)
-            st.write(plot1)
-         elif eda_tab == 'Production':
-            st.subheader('Example: Well produciton by product type')
-            well_id = wp['EPAssetsId'].head(20).unique()
-            default_id = list(well_id[0:5])
-            wells = st.multiselect('Please Select wells',well_id)
-            well_plot = single_Well_plot1(wells,wp)
-            st.write(well_plot)
-      
-       
-    elif tab == 'Datathon Identification':
-        st.write('Result from Datathon Analysis')
-
-    elif tab == 'Prediction':
-        st.subheader(' Predict DUC wells from new datasets')
-        uploaded_file = st.file_uploader("Upload Well Header CSV file", type="csv")
-        if uploaded_file is not None:
-            data = pd.read_csv(uploaded_file)
-            st.write(data.head())
-      
-        uploaded_file2 = st.file_uploader("Upload Production CSV file", type="csv")
-        if uploaded_file2 is not None:
-            production = pd.read_csv(uploaded_file2)
-            st.write(production.head())
-
-        uploaded_file3= st.file_uploader("Upload PerfTreatment CSV file", type="csv")
-        if uploaded_file3 is not None:
-            perf = pd.read_csv(uploaded_file3)
-            st.write(perf.head())
-        st.subheader('Results, same analysis from previous Tab')
 
 
-    elif tab == 'About Us':
-        st.header('The Team')
-        st.markdown(''' 
-### Ijeoma:''') 
-        ij = Image.open('Img/ijeoma.jpeg')
-        st.image(ij,width=200)
-        st.markdown('''
-### Gabriel:
-### Korang
-### Mohammed:
-### Alejandro Coy:''')
-        image = Image.open('Img/me.jpeg')
-        st.image(image,width=200)
-        st.markdown('''
-I’ve been working on research, design, and implementation of new technologies for the heavy oil industry for the past 10 years.
-
-Since I worked on my bachelor’s thesis (where I analyzed thousands of flow measurements for gas natural mixtures), I’ve been passionate about data and the powerful insights obtained from experiments where the information is collected and process correctly.
-        ''')
-    else: 
-        st.title('DUC or Not!! ')
-        st.write('Introduciton to the App ...................')
-        image = Image.open('Img/duc.png')
-       
-        st.image(image,use_column_width=True)
-        st.subheader('Untapped Energy DUC Datathon 2020: Data Conquerors')
-        home = Image.open('Img/home.png')
-        st.image(home,use_column_width=True)
-        
-
-def eda_plot(df,x,y,color):
-    sns.scatterplot(x=x,y=y,hue=color,data=df)
-    return st.pyplot()
-    
-@st.cache     
-def load_produciton():
-     wp = pd.read_csv("data/WellProduction.csv",parse_dates=['ProdPeriod'],index_col=False)
-     wp = pd.read_csv("data/WellProduction.csv",parse_dates=['ProdPeriod'],index_col=False)
-     wp = wp.drop(columns=['WellHeader.Match'])
-     return wp
-@st.cache 
-def load_header():
-     wh = pd.read_csv("data/WellHeader_Datathon.csv",index_col=False)
-     wh = clean_pipeline(wh,)
-     return wh
-@st.cache 
-def load_treatment():
-     wt = pd.read_csv("data/PerfTreatments.csv",index_col=False)
-     #clenaing of wt dataset
-     return wt
-
-def clean_pipeline(df):
-    ## Select objects to convert to category type 
-    cat =list(df.dtypes[df.dtypes == 'object'].index)
-    df[cat] = df[cat].astype('category')
-    surface_columns=['Surf_LSD','Surf_Section','Surf_Township','Surf_Range','BH_LSD','BH_Section','BH_Township','BH_Range']
-    df[surface_columns]=df[surface_columns].astype(str)
-    df[surface_columns]=df[surface_columns].astype('category')
-    feature_selection = ['TVD','EPAssetsId','GroundElevation',
-                    'KBElevation','Formation','WellType','WellProfile','ProjectedDepth','DaysDrilling','TotalDepth']
-    df = df[feature_selection]
-    return df
-
-
-def single_Well_plot1(well_id,df1):
-    df_well = df1[(df1['EPAssetsId'].isin(well_id)) & (df1['ProdType'] != 'Production Hours')]
-    chart= alt.Chart(df_well).mark_bar(size=5).encode(
-        x=alt.X('ProdPeriod',timeUnit='yearmonthdate'),
-        y='Volume',
-        color='ProdType',
-         facet=alt.Facet('EPAssetsId', columns=3)
-        ).properties(title='Wells',
-    width=180,
-    height=150
-    ).interactive()
-    return chart
 
 if __name__ == "__main__":
     main()
