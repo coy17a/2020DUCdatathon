@@ -5,14 +5,16 @@ import seaborn as sns
 import streamlit as st
 import altair as alt
 from altair.utils import sanitize_dataframe
+plt.style.use('ggplot')
 
 
 def clean_pipeline2(df):
     ## Select objects to convert to category type 
     cat =list(df.dtypes[df.dtypes == 'object'].index)
-    df[cat] = df[cat].astype('category')
-    surface_columns=['Surf_LSD','Surf_Section','Surf_Township','Surf_Range','BH_LSD','BH_Section','BH_Township','BH_Range']
-    df[surface_columns]=df[surface_columns].astype(str)
+    if len(cat)>0:
+        df[cat] = df[cat].astype('category')
+        surface_columns=['Surf_LSD','Surf_Section','Surf_Township','Surf_Range','BH_LSD','BH_Section','BH_Township','BH_Range']
+        df[surface_columns]=df[surface_columns].astype(str)
     #df_s = df[column_selection]
     #df_s['TVD']= df['TVD']
     return df
@@ -139,6 +141,12 @@ def hist_days_uncomplete(ducs_final_df,step):
     # plt.title('Number of DUC wells')
     # st.pyplot()
 
+def hist_days_uncomplete2(ducs_final_df):
+     plot = sns.distplot(ducs_final_df['Days of Uncompleted Status'], kde=False, rug=False);
+     plot.set(xlabel="Days", ylabel = "Number of Wells")
+     st.pyplot()
+    
+
     # create bins for range of days of uncompleted status
 def ducs_binned(ducs_final_df):
     bins = [0, 60, 90, 365, 730, 1095]
@@ -189,7 +197,9 @@ def non_duc_wells_duration(wellheader,wellproduction,perftreatment,ducs):
     # create histogram for DUC status duration for non_DUC_wells
     return non_ducs_final_df
 
+
 def non_ducs_per_formation(df,step,facet):
+    
     df=sanitize_dataframe(df)
     chart = alt.Chart(df).mark_bar().encode(
         alt.X('Days of Uncompleted Status',bin=alt.Bin(extent=[0, 500], step=step)),
@@ -199,54 +209,31 @@ def non_ducs_per_formation(df,step,facet):
         opacity=alt.value(0.7)
     ).properties(width=200).interactive()
     return st.altair_chart(chart)
-    # Days of Uncompleted Status hist by Formation 
-    g=sns.FacetGrid(non_ducs_final_df, col='Formation', height=5, aspect = 1)
-    g.map(plt.hist, 'Days of Uncompleted Status', alpha=0.7, bins=40)
-    plt.show()
 
-    # Days of Uncompleted Status hist by PSACAreaName 
-    g=sns.FacetGrid(non_ducs_final_df, col='PSACAreaName', col_wrap=3, height= 4, aspect=1)
-    g.map(plt.hist, 'Days of Uncompleted Status', alpha=0.7, bins=40)
-    plt.show()
-
+def non_ducs_bins(non_ducs_final_df):
     # create bins for range of days of uncompleted status
     bins = [0, 60, 90, 365, 730, 1095]
     labels = ['<60days', '60-90days', '90-365days', '365-730days', '730-1095days']
     non_ducs_final_df['Binned'] = pd.cut(non_ducs_final_df['Days of Uncompleted Status'], bins=bins, labels=labels)
-    non_ducs_final_df.head(5)
-
-    non_ducs_final_df.shape
-
     # group by number of wells by bin label
-
     non_ducs_df_binned = non_ducs_final_df.groupby(pd.cut(non_ducs_final_df['Days of Uncompleted Status'], bins=bins)).size()
-    print (non_ducs_df_binned)
-
     # groupby number of wells by bin label
     non_ducs_df_binned = non_ducs_final_df.groupby(by='Binned', as_index=False).agg({'EPAssetsId':'size'})
-    print(non_ducs_df_binned)
-
     # create bar graph
-
-    non_ducs_df_binned.plot.barh(x='Binned', y='EPAssetsId')
-    plt.xlabel('Number of Wells')
-    plt.ylabel('Days of Uncompleted Status - Range')
-    plt.show()
-
-    # groupby number of wells by formation and bin label
-    non_ducs_final_df.head()
-
+    # non_ducs_df_binned.plot.barh(x='Binned', y='EPAssetsId')
+    # plt.xlabel('Number of Wells')
+    # plt.ylabel('Days of Uncompleted Status - Range')
+    # plt.show()
+    # # groupby number of wells by formation and bin label
     # groupby number of wells by formation and bin labels
     non_ducs_df_binned_formation = non_ducs_final_df.groupby(['Binned', 'Formation'], as_index=False, observed=True).agg({'EPAssetsId': 'size'})
-    print(non_ducs_df_binned_formation)
-
     # Number of wells binned by Days of Uncompleted Status duration by Formation 
-    g=sns.catplot(x='EPAssetsId', y='Binned', data=non_ducs_df_binned_formation, col='Formation', kind='bar', height=5, aspect = 1, sharey='row', )
+    g=sns.catplot(x='EPAssetsId', y='Binned', data=non_ducs_df_binned_formation, col='Formation',col_wrap=2, kind='bar', height=5, aspect = 0.8, sharey='row', )
     g.set(xlabel='Number of Wells', ylabel= 'Days of Uncompleted Status - Range')
-    plt.show()
+    st.pyplot()
 
-    """## Additional DUC wells Insights"""
-
+#"""## Additional DUC wells Insights"""
+def test():
     # Days of Uncompleted Status hist by Formation 
     g=sns.FacetGrid(ducs_final_df, col='Formation', height=5, aspect = 1)
     g.map(plt.hist, 'Days of Uncompleted Status', alpha=0.7)

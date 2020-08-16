@@ -71,18 +71,18 @@ def dispaly_eda():
         wp = load_production()
         wh = load_header()
         wt = load_treatment()
-    options =['Well Header','Production','Perforation Treatments']
+    options =['Well Header','Production','Perforation Treatments','Geo Info']
     eda_tab=st.radio('Select Dataset',options)
+    
     if eda_tab == 'Well Header':
         desc = wh.describe()
         st.subheader('Well Header Data Numerical Stats')
-        wh=clean_pipeline(wh)
+        wh1=clean_pipeline(wh)
         st.write(desc)
         st.subheader('Geographical Location')       
-        #map_well = map_wells(wh)
-        #folium_static(map_well)
-        cols = list(wh.columns)
-        x = st.selectbox('X Variable',cols,index=12)
+       
+        cols = list(wh1.columns)
+        x = st.selectbox('X Variable',cols,index=14)
         y = st.selectbox('Y Variable',cols,index=13)
         color = st.selectbox('Color Variable',cols,index=6)
         #wh=sanitize_dataframe(wh)
@@ -90,15 +90,22 @@ def dispaly_eda():
         #     x=x,
         #     y= y,
         #     color=color).properties(width=700))#width=700,height=300))
-        st.write(eda_plot(wh,x,y,color))
+        st.write(eda_plot(wh1,x,y,color))
+       
         
-    elif eda_tab == 'Production':
+    if eda_tab == 'Production':
         st.subheader('Example: Well production by product type')
         well_id = wp['EPAssetsId'].head(20).unique()
         default_id = list(well_id[0:5])
         wells = st.multiselect('Please Select wells',well_id)
         well_plot = single_Well_plot1(wells,wp)
         st.write(well_plot)
+    if eda_tab == 'Geo Info':
+        sample=st.slider('Number of well in the map',min_value=10,max_value=10000,value=100,step=1)
+        wh_sample=wh.sample(sample)
+        map_well = map_wells(wh_sample)
+        folium_static(map_well)
+
 
 def duc_analysis(wh,wp,wt):
         st.header('Datathon DUC Well Identification')
@@ -140,10 +147,12 @@ def duc_analysis(wh,wp,wt):
         if nav =='DUC Duration':
             non_ducs_df=non_duc_wells_duration(wellheader,wellproduction,perftreatment,ducs)
             st.subheader('Time of Uncompleted Status in the data set')
-            hist_days_uncomplete(non_ducs_df,step=25)
+            hist_days_uncomplete2(non_ducs_df)
             st.subheader('Time of Uncompleted Status in the data set by: ')
             facet = st.selectbox('Facet By:',['Formation','PSACAreaName','Field'],index=0)
+            non_ducs_bins(non_ducs_df)
             non_ducs_per_formation(non_ducs_df,25,facet)
+            
 
 
 
@@ -159,18 +168,20 @@ def eda_plot2(df,x,y,color):
     )
     return plot
 
+@st.cache(persist=True)
 def load_production():
      wp = pd.read_csv("data/WellProduction.csv",parse_dates=['ProdPeriod'],index_col=False)
      #wp = pd.read_csv("data/WellProduction.csv",parse_dates=['ProdPeriod'],index_col=False)
      #wp = wp.drop(columns=['WellHeader.Match'])
      return wp
-
+     
+@st.cache(persist=True)
 def load_header():
     datecolumns = ['LicenceDate', 'ConfidentialReleaseDate','AbandonDate', 'SurfAbandonDate', 'SpudDate', 'FinalDrillDate', 'RigReleaseDate','StatusDate','CompletionDate']  
     wh = pd.read_csv("data/WellHeader_Datathon.csv",index_col=False,parse_dates=datecolumns)
     #wh = clean_pipeline(wh)
     return wh
-
+@st.cache(allow_output_mutation=True,persist=True)
 def load_treatment():
      wt = pd.read_csv("data/PerfTreatments.csv",index_col=False,parse_dates=['ActivityDate'])
      #clenaing of wt dataset
@@ -179,10 +190,11 @@ def load_treatment():
 def clean_pipeline(df):
     ## Select objects to convert to category type 
     cat =list(df.dtypes[df.dtypes == 'object'].index)
-    df[cat] = df[cat].astype('category')
-    surface_columns=['Surf_LSD','Surf_Section','Surf_Township','Surf_Range','BH_LSD','BH_Section','BH_Township','BH_Range']
-    df[surface_columns]=df[surface_columns].astype(str)
-    df[surface_columns]=df[surface_columns].astype('category')
+    if len(cat)>0:
+        df[cat] = df[cat].astype('category')
+        surface_columns=['Surf_LSD','Surf_Section','Surf_Township','Surf_Range','BH_LSD','BH_Section','BH_Township','BH_Range']
+        df[surface_columns]=df[surface_columns].astype(str)
+        df[surface_columns]=df[surface_columns].astype('category')
     feature_selection = ['EPAssetsId', 'Province','UWI', 'CurrentOperator',
        'CurrentStatus', 'WellType',
         'Formation', 'Field', 'Pool',
@@ -208,8 +220,6 @@ def single_Well_plot1(well_id,df1):
     height=150
     ).interactive()
     return chart
-
-
 
 def map_wells(wh):
     latitude = 54.73
@@ -255,7 +265,6 @@ Since I worked on my bachelor’s thesis (where I analyzed thousands of flow mea
         ''')
 
 def what_is_duc():
-    st.write('EIA Paper, maybe markdown from github....')
     st.markdown('''
 # Introduction
 
@@ -280,12 +289,7 @@ DUC wells are drilled but not completed! More specifically, these are wells that
 - DUCs will be identified using the criteria in above. The criteria will be coded to create a binary identifier to tag well that are DUC with 1 and the rest as 0. The process has two step filter application to the "wellHeader" subeset as the master list. 
     - First, all the wells from the "wellPerf" which meet the criteria for being through completion activities are removed from the master list resulting in an interim list.
     - Second, the wells from "wellProduction" which are showing production records (any product type) will be removed from the interim list, which results in a table listing Wells that are potentially qualified as DUC.
- 
-- Classification methods will be used under unsupervised learning to find patterns which may be associated with the DUC wells. 
- 
-- the supervised learning might be performed using the DUC identifier from earlier steps.
 
-Methods and algorithms need to be selected to associate the data features with the DUC well types. Number of method might be considered before the appropriate model is fitted. those techniques are discussed as follows.
 
 # EDA
 
@@ -297,23 +301,11 @@ Well header file will be the master list providing all the wells. before filteri
         a. min and max of production periods, 
         b. count of production period.
     4.  Table also aggregrated to create total production for each ['EPAssetsId', 'ProductType']
-        c. sum of production volume for each production type
         
-Grouping on Asset Ids and production periods would be applied to the table summary. 
+# DUC Wells Identifications
+## Workflow file
+  
 
-The resulting production table would be used for analyzing data series with relation to DUC wells. Should the time be ample for further analysis, the economy of DUC Wells and their impact on the overall production profile for the region might be researched.  
-
-## Unsupervised Learning
-
-**_Under Development_**
-
-## Supervised Learning
-
-### Decision Tree
-
-Decision-Tree based classification methods might be considered to classify the data into DUC and non-DUC wells using the criteria defined. 
-
-**_Under Development_**
 ''' )
 
 
