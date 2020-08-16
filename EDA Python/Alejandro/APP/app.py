@@ -254,8 +254,8 @@ def about_us():
     ij = Image.open('Img/ijeoma.jpeg')
     st.image(ij,width=200)
     st.markdown('''
-    I am a Business Intelligence Analyst with approximately 8 years of experience as a Project Engineer within the Canadian Oil and Gas Industry delivering pipeline and facility projects across Alberta and British Columbia. I enjoy performing data cleaning, exploratory data analysis, and preparing data visualizations to provide actionable insights.    
-    **Contributions:** *DUC well identification Code, Duc Identificaiton Strategy and Visualizations*
+    A Business Intelligence Analyst with approximately 8 years of experience as a Project Engineer within the Canadian Oil and Gas Industry delivering pipeline and facility projects across Alberta and British Columbia. I enjoy performing data cleaning, exploratory data analysis, and preparing data visualizations to provide actionable insights.    
+    **Contributions:** *Exploratory Data Analysis, DUC well Identification Code, DUC well Identification Strategy and Visualizations*
 ### Alejandro Coy:''')
     image = Image.open('Img/me.jpeg')
     st.image(image,width=200)
@@ -275,8 +275,12 @@ def about_us():
     st.markdown('''
     Md Alauddin is a PhD student at " the Centre for Risk, Integrity and Safety Engineering (C-RISE)" in the Department of Process Engineering, Memorial University of Newfoundland, Canada. His research interest includes abnormal situation management, fault detection and diagnosis, evolutionary computation, and data mining application in oil and gas systems. He is currently working on prediction and control of COVID-19 using stochastic modeling.  
     **Contributions:** *Duc Identification and TVD competiton Strategy,Documentation*
-### Korang  
- **Contributions:** *Duc Identification Strategy and TVD competiton,Documentation*''')
+### Korang:''')
+    kg = Image.open('Img/Korang.png')
+    st.image(kg,width=200)
+    st.markdown('''
+    Korang has been working in industrial projects for most of his career.  He is a Professional Engineer (P.Eng.) with master’s degree in Mechanical Engineering. Through his career he has been working with disciplines and stakeholders in projects to gather meaningful project data that he used toprovide information needed for making decision about the projects. With years of experience in projects he believes in the power of data efficacy and the important role the analytical skills play in information-based decision making. He is a perpetual learner and enjoys analyzing data and presenting the results with the power of visualization.
+    **Contributions:** *DUC Identification Strategy and TVD competition,Documentation*''')
 
 def what_is_duc():
     st.markdown('''
