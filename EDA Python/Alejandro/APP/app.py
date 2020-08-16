@@ -36,17 +36,18 @@ def main():
         st.subheader(' Predict DUC wells from new datasets')
         uploaded_file = st.file_uploader("Upload Well Header CSV file", type="csv")
         if uploaded_file is not None:
-            wh = pd.read_csv(uploaded_file)
+            datecolumns = ['LicenceDate', 'ConfidentialReleaseDate','AbandonDate', 'SurfAbandonDate', 'SpudDate', 'FinalDrillDate', 'RigReleaseDate','StatusDate','CompletionDate'] 
+            wh = pd.read_csv(uploaded_file,parse_dates=datecolumns,index_col=False)
             #st.write(data.head())
       
         uploaded_file2 = st.file_uploader("Upload Production CSV file", type="csv")
         if uploaded_file2 is not None:
-            wp = pd.read_csv(uploaded_file2)
+            wp = pd.read_csv(uploaded_file2,parse_dates=['ProdPeriod'],index_col=False)
             #st.write(production.head())
 
         uploaded_file3= st.file_uploader("Upload PerfTreatment CSV file", type="csv")
         if uploaded_file3 is not None:
-            wt= pd.read_csv(uploaded_file3)
+            wt= pd.read_csv(uploaded_file3,index_col=False,parse_dates=['ActivityDate'])
             #st.write(perf.head())
         st.subheader('Results')
         if (uploaded_file != None) & (uploaded_file2 != None) & (uploaded_file3 != None):
@@ -57,7 +58,7 @@ def main():
         
     else: 
         st.title('DUC or Not!! ')
-        st.write('Introduciton to the App ...................')
+        st.markdown('This web application was designed as part of the 202 DUC Datathon submission of the team Data Conquerors and shows the work performed in exploring and analyzing a dataset conformed of 10438 wells to determine possible drilled but uncompleted wells. With this information oil services companies can identify potential clients and/or forecast market size; For that, a prediction option is available in the main menu whereby simply dropping any data sets alike, real-time segregation can be done on the fly.')
         image = Image.open('Img/duc.png')
        
         st.image(image,use_column_width=True)
@@ -92,12 +93,13 @@ def dispaly_eda():
         #     color=color).properties(width=700))#width=700,height=300))
         st.write(eda_plot(wh1,x,y,color))
        
-        
+
     if eda_tab == 'Production':
         st.subheader('Example: Well production by product type')
         well_id = wp['EPAssetsId'].head(20).unique()
         default_id = list(well_id[0:5])
         wells = st.multiselect('Please Select wells',well_id)
+        wp=sanitize_dataframe(wp)
         well_plot = single_Well_plot1(wells,wp)
         st.write(well_plot)
     if eda_tab == 'Geo Info':
@@ -129,8 +131,8 @@ def duc_analysis(wh,wp,wt):
             folium_static(map_wells(ddf))
             st.subheader('DUCs Exploration')
             cols = list(ddf.columns)
-            x = st.selectbox('X Variable',cols,index=13)
-            y = st.selectbox('Y Variable',cols,index=14)
+            x = st.selectbox('X Variable',cols,index=2)
+            y = st.selectbox('Y Variable',cols,index=3)
             color = st.selectbox('Color Variable',cols,index=7)
             ddf=sanitize_dataframe(ddf)
             st.altair_chart(alt.Chart(ddf).mark_bar(size=8).encode(
@@ -146,11 +148,11 @@ def duc_analysis(wh,wp,wt):
             ducs_binned(ducs_final)
         if nav =='DUC Duration':
             non_ducs_df=non_duc_wells_duration(wellheader,wellproduction,perftreatment,ducs)
-            st.subheader('Time of Uncompleted Status in the data set')
+            st.subheader('Time of Uncompleted Status all wells')
             hist_days_uncomplete2(non_ducs_df)
-            st.subheader('Time of Uncompleted Status in the data set by: ')
-            facet = st.selectbox('Facet By:',['Formation','PSACAreaName','Field'],index=0)
+            st.subheader('Time of Uncompleted Status in the data set by Formation ')
             non_ducs_bins(non_ducs_df)
+            facet = st.selectbox('Facet By:',['Formation','PSACAreaName','Field'],index=0)
             non_ducs_per_formation(non_ducs_df,25,facet)
             
 
@@ -252,25 +254,29 @@ def about_us():
     ij = Image.open('Img/ijeoma.jpeg')
     st.image(ij,width=200)
     st.markdown('''
-    I am a Business Intelligence Analyst with approximately 8 years of experience as a Project Engineer within the Canadian Oil and Gas Industry delivering pipeline and facility projects across Alberta and British Columbia. I enjoy performing data cleaning, exploratory data analysis, and preparing data visualizations to provide actionable insights. 
-### Gabriel:''')
-    gb = Image.open('Img/Gabriel.png')
-    st.image(gb,width=200)
-    st.markdown('''
-    A geoscience engineer with 11 years’ experience in the oil and gas industry as a data analyst, performing processing and interpretation of well logs reservoir characterization for basins in Canada, USA and Mexico; I can also hold my breath for almost 2 minutes.
-### Korang
-### Mohammed:''')
-    mh = Image.open('Img/Muhammad.png')
-    st.image(image,width=200)
-    st.markdown('''
-    Md Alauddin is a PhD student at " the Centre for Risk, Integrity and Safety Engineering (C-RISE)" in the Department of Process Engineering, Memorial University of Newfoundland, Canada. His research interest includes abnormal situation management, fault detection and diagnosis, evolutionary computation, and data mining application in oil and gas systems. He is currently working on prediction and control of COVID-19 using stochastic modeling.
+    I am a Business Intelligence Analyst with approximately 8 years of experience as a Project Engineer within the Canadian Oil and Gas Industry delivering pipeline and facility projects across Alberta and British Columbia. I enjoy performing data cleaning, exploratory data analysis, and preparing data visualizations to provide actionable insights.    
+    **Contributions:** *DUC well identification Code, Duc Identificaiton Strategy and Visualizations*
 ### Alejandro Coy:''')
     image = Image.open('Img/me.jpeg')
     st.image(image,width=200)
     st.markdown('''
     I’ve been working on research, design, and implementation of new technologies for the heavy oil industry for the past 10 years.
-    Since I worked on my bachelor’s thesis (where I analyzed thousands of flow measurements for gas natural mixtures), I’ve been passionate about data and the powerful insights obtained from experiments where the information is collected and process correctly.
-        ''')
+    Since I worked on my bachelor’s thesis (where I analyzed thousands of flow measurements for gas natural mixtures), I’ve been passionate about data and the powerful insights obtained from experiments where the information is collected and process correctly.  
+    **Contributions:** *Streamlit App Code,Visualizations and TVD Kaggle Competion Strategy and Code*
+### Gabriel:''')
+    gb = Image.open('Img/Gabriel.png')
+    st.image(gb,width=200)
+    st.markdown('''
+    A geoscience engineer with 11 years’ experience in the oil and gas industry as a data analyst, performing processing and interpretation of well logs reservoir characterization for basins in Canada, USA and Mexico; I can also hold my breath for almost 2 minutes. 
+    **Contributions:** *Duc Identification and TVD competiton Strategy,Documentation*
+### Mohammed:''')
+    mh = Image.open('Img/Muhammad.png')
+    st.image(mh,width=200)
+    st.markdown('''
+    Md Alauddin is a PhD student at " the Centre for Risk, Integrity and Safety Engineering (C-RISE)" in the Department of Process Engineering, Memorial University of Newfoundland, Canada. His research interest includes abnormal situation management, fault detection and diagnosis, evolutionary computation, and data mining application in oil and gas systems. He is currently working on prediction and control of COVID-19 using stochastic modeling.  
+    **Contributions:** *Duc Identification and TVD competiton Strategy,Documentation*
+### Korang  
+ **Contributions:** *Duc Identification Strategy and TVD competiton,Documentation*''')
 
 def what_is_duc():
     st.markdown('''

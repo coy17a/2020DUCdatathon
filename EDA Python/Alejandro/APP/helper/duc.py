@@ -228,7 +228,7 @@ def non_ducs_bins(non_ducs_final_df):
     # groupby number of wells by formation and bin labels
     non_ducs_df_binned_formation = non_ducs_final_df.groupby(['Binned', 'Formation'], as_index=False, observed=True).agg({'EPAssetsId': 'size'})
     # Number of wells binned by Days of Uncompleted Status duration by Formation 
-    g=sns.catplot(x='EPAssetsId', y='Binned', data=non_ducs_df_binned_formation, col='Formation',col_wrap=2, kind='bar', height=5, aspect = 0.8, sharey='row', )
+    g=sns.catplot(x='EPAssetsId', y='Binned', data=non_ducs_df_binned_formation, col='Formation',col_wrap=2, kind='bar', height=6, aspect = 0.8)
     g.set(xlabel='Number of Wells', ylabel= 'Days of Uncompleted Status - Range')
     st.pyplot()
 
