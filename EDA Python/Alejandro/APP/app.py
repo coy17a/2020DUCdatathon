@@ -243,7 +243,11 @@ def about_us():
     st.image(ij,width=200)
     st.markdown('''
     I am a Business Intelligence Analyst with approximately 8 years of experience as a Project Engineer within the Canadian Oil and Gas Industry delivering pipeline and facility projects across Alberta and British Columbia. I enjoy performing data cleaning, exploratory data analysis, and preparing data visualizations to provide actionable insights. 
-### Gabriel:
+### Gabriel:''')
+    gb = Image.open('Img/Gabriel.png')
+    st.image(gb,width=200)
+    st.markdown('''
+    A geoscience engineer with 11 years’ experience in the oil and gas industry as a data analyst, performing processing and interpretation of well logs reservoir characterization for basins in Canada, USA and Mexico; I can also hold my breath for almost 2 minutes.
 ### Korang
 ### Mohammed:
 ### Alejandro Coy:''')
