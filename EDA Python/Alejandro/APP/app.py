@@ -259,13 +259,17 @@ def about_us():
     st.markdown('''
     A geoscience engineer with 11 years’ experience in the oil and gas industry as a data analyst, performing processing and interpretation of well logs reservoir characterization for basins in Canada, USA and Mexico; I can also hold my breath for almost 2 minutes.
 ### Korang
-### Mohammed:
+### Mohammed:''')
+    mh = Image.open('Img/Muhammad.png')
+    st.image(image,width=200)
+    st.markdown('''
+    Md Alauddin is a PhD student at " the Centre for Risk, Integrity and Safety Engineering (C-RISE)" in the Department of Process Engineering, Memorial University of Newfoundland, Canada. His research interest includes abnormal situation management, fault detection and diagnosis, evolutionary computation, and data mining application in oil and gas systems. He is currently working on prediction and control of COVID-19 using stochastic modeling.
 ### Alejandro Coy:''')
     image = Image.open('Img/me.jpeg')
     st.image(image,width=200)
     st.markdown('''
-I’ve been working on research, design, and implementation of new technologies for the heavy oil industry for the past 10 years.
-Since I worked on my bachelor’s thesis (where I analyzed thousands of flow measurements for gas natural mixtures), I’ve been passionate about data and the powerful insights obtained from experiments where the information is collected and process correctly.
+    I’ve been working on research, design, and implementation of new technologies for the heavy oil industry for the past 10 years.
+    Since I worked on my bachelor’s thesis (where I analyzed thousands of flow measurements for gas natural mixtures), I’ve been passionate about data and the powerful insights obtained from experiments where the information is collected and process correctly.
         ''')
 
 def what_is_duc():
