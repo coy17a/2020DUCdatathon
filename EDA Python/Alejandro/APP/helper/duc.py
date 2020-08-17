@@ -51,9 +51,9 @@ def load_production_eda():
      #wp = wp.drop(columns=['WellHeader.Match'])
      return wp
 
-def display_eda(wp,wh,wt):
-    with st.spinner('Loading..'):
-        st.header('Exploration Data Analysis')
+def display_eda(wp,wh,wt,wp_eda):
+    
+    st.header('Exploration Data Analysis')
         
     options =['Well Header','Production','Perforation Treatments']
     eda_tab=st.sidebar.radio('Select Dataset',options)
@@ -77,7 +77,7 @@ def display_eda(wp,wh,wt):
        
 
     if eda_tab == 'Production':
-        wp_eda = load_production_eda()
+        
         st.subheader('Total Production')
         options=['Formation','Province','WellType','Pool','WellProfile','PSACAreaName']
         x_value=st.selectbox('X value',options,index=0,key='TotalP')
@@ -114,7 +114,7 @@ def display_eda(wp,wh,wt):
          activities=st.slider('Number Of top Activities',min_value=1,max_value=25,value=10)
          top_activiteis(perf_plot,activities)
 
-def predictions():
+def predictions(wp_eda):
     st.set_option('deprecation.showfileUploaderEncoding', False)
     st.subheader(' Predict DUC wells from new datasets')
     uploaded_file = st.file_uploader("Upload Well Header CSV file", type="csv")
@@ -136,19 +136,20 @@ def predictions():
     if (uploaded_file != None) & (uploaded_file2 != None) & (uploaded_file3 != None):
         selection=st.radio('Analysys',['EDA','DUCs'],index=1)
         if selection=='EDA':
-            display_eda(wp,wh,wt)
+            display_eda(wp,wh,wt,wp_eda)
         else:
             duc_analysis(wh,wp,wt)
         
 def home():
     st.title('DUC or Not!! ')
-    st.markdown('This web application was designed as part of the 202 DUC Datathon submission of the team Data Conquerors and shows the work performed in exploring and analyzing a dataset conformed of 10438 wells to determine possible drilled but uncompleted wells. With this information oil services companies can identify potential clients and/or forecast market size; For that, a prediction option is available in the main menu whereby simply dropping any data sets alike, real-time segregation can be done on the fly.')
+    st.markdown('This web application was designed as part of the 2020 DUC Datathon submission of the team Data Conquerors and shows the work performed in exploring and analyzing a dataset conformed of 10438 wells to determine possible drilled but uncompleted wells. With this information oil services companies can identify potential clients and/or forecast market size; For that, a prediction option is available in the main menu whereby simply dropping any data sets alike, real-time segregation can be done on the fly.')
     image = Image.open('Img/duc.png')
     
     st.image(image,use_column_width=True)
     st.subheader('Untapped Energy DUC Datathon 2020: Data Conquerors')
     home = Image.open('Img/home.png')
     st.image(home,use_column_width=True)
+    st.header('www.ducornot.herokuapp.com')
         
 
 def hist_perf(hist,step):
@@ -384,7 +385,7 @@ def ducs_binned(ducs_final_df):
     ducs_df_binned=sanitize_dataframe(ducs_df_binned)
     #ducs_df_binned.plot.barh(x='Binned', y='EPAssetsId')
     chart = alt.Chart(ducs_df_binned).mark_bar().encode(
-        alt.Y('Binned',sort='-x'),
+        alt.Y('Binned',sort='x'),
         alt.X('EPAssetsId',title='Number Wells')
     ).properties(width=700).interactive()
     #plt.xlabel('Number of DUC Wells')
@@ -541,7 +542,7 @@ def duc_analysis(wh,wp,wt):
             ddf= wh[wh['EPAssetsId'].isin(ducs)]
             ddf= clean_pipeline(ddf)
             st.write(f'Number of wells with current Status not in ["Pumping", "Flowing", "Gas Lift"] : {m1}')
-            st.write(f'Number of wells not in wt data nor in well_production data: {m2}') 
+            st.write(f'Number of wells not in perf_data nor in well_production data: {m2}') 
             st.write(f'Potential number of DUC wells using only the CompletionActivity criteria from perftreatment table: {m3}')
             st.write(f'Wells with no production that have also not been completed: {m4}')
             st.success(f'Total DUC wells in dataset:{len(ducs)}')
