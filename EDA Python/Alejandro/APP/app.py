@@ -247,8 +247,8 @@ def about_us():
     ij = Image.open('Img/ijeoma.jpeg')
     st.image(ij,width=200)
     st.markdown('''
-    I am a Business Intelligence Analyst with approximately 8 years of experience as a Project Engineer within the Canadian Oil and Gas Industry delivering pipeline and facility projects across Alberta and British Columbia. I enjoy performing data cleaning, exploratory data analysis, and preparing data visualizations to provide actionable insights.    
-    **Contributions:** *DUC well identification Code, Duc Identificaiton Strategy and Visualizations*
+    A Business Intelligence Analyst with approximately 8 years of experience as a Project Engineer within the Canadian Oil and Gas Industry delivering pipeline and facility projects across Alberta and British Columbia. I enjoy performing data cleaning, exploratory data analysis, and preparing data visualizations to provide actionable insights.    
+    **Contributions:** *Exploratory Data Analysis, DUC well Identification Code, DUC Identification Strategy and Visualizations*
 ### Alejandro Coy:''')
     image = Image.open('Img/me.jpeg')
     st.image(image,width=200)
