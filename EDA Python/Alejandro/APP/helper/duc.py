@@ -141,8 +141,8 @@ def hist_days_uncomplete(ducs_final_df,step):
     # plt.title('Number of DUC wells')
     # st.pyplot()
 
-def hist_days_uncomplete2(ducs_final_df):
-     plot = sns.distplot(ducs_final_df['Days of Uncompleted Status'], kde=False, rug=False);
+def hist_days_uncomplete2(ducs_final_df,step):
+     plot = sns.distplot(ducs_final_df['Days of Uncompleted Status'], kde=False, rug=False,bins=step);
      plot.set(xlabel="Days", ylabel = "Number of Wells")
      st.pyplot()
     
@@ -197,15 +197,39 @@ def non_duc_wells_duration(wellheader,wellproduction,perftreatment,ducs):
     # create histogram for DUC status duration for non_DUC_wells
     return non_ducs_final_df
 
+def info_single_well(well_uwi,wh):
+    df= wh[wh['UWI']==well_uwi]
+    df = clean_pipeline(df)
+    df=df
+    return df
 
+def clean_pipeline(df):
+    ## Select objects to convert to category type 
+    cat =list(df.dtypes[df.dtypes == 'object'].index)
+    if len(cat)>0:
+        df[cat] = df[cat].astype('category')
+        surface_columns=['Surf_LSD','Surf_Section','Surf_Township','Surf_Range','BH_LSD','BH_Section','BH_Township','BH_Range']
+        df[surface_columns]=df[surface_columns].astype(str)
+        df[surface_columns]=df[surface_columns].astype('category')
+    feature_selection = ['EPAssetsId', 'Province','UWI', 'CurrentOperator',
+       'CurrentStatus', 'WellType',
+        'Formation', 'Field', 'Pool',
+        'Surf_Location', 'Surf_Longitude',
+       'Surf_Latitude','GroundElevation', 'KBElevation', 'TotalDepth',
+       'SurfaceOwner', 'DrillingContractor', 'FinalDrillDate',
+       'RigReleaseDate', 'DaysDrilling', 'DrillMetresPerDay',
+       'WellProfile', 'PSACAreaCode', 'PSACAreaName',
+       'ProjectedDepth']
+    df = df[feature_selection]
+    return df
 def non_ducs_per_formation(df,step,facet):
     
     df=sanitize_dataframe(df)
     chart = alt.Chart(df).mark_bar().encode(
-        alt.X('Days of Uncompleted Status',bin=alt.Bin(extent=[0, 500], step=step)),
-        alt.Y('count()',title='Number Wells'),
+        alt.Y('Days of Uncompleted Status',bin=alt.Bin(extent=[0, 500], step=step)),
+        alt.X('count()',title='Number Wells'),
         facet=alt.Facet(facet, columns=3),
-        color=alt.value('blue'),
+        color=alt.value('#e68805'),
         opacity=alt.value(0.7)
     ).properties(width=200).interactive()
     return st.altair_chart(chart)

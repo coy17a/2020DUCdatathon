@@ -72,7 +72,7 @@ def dispaly_eda():
         wp = load_production()
         wh = load_header()
         wt = load_treatment()
-    options =['Well Header','Production','Perforation Treatments','Geo Info']
+    options =['Well Header','Production','Perforation Treatments']
     eda_tab=st.radio('Select Dataset',options)
     
     if eda_tab == 'Well Header':
@@ -80,17 +80,16 @@ def dispaly_eda():
         st.subheader('Well Header Data Numerical Stats')
         wh1=clean_pipeline(wh)
         st.write(desc)
-        st.subheader('Geographical Location')       
-       
+        st.subheader('Geographical Location')    
+        sample=st.slider('Number of well in the map',min_value=10,max_value=10000,value=100,step=1)
+        wh_sample=wh.sample(sample)
+        map_well = map_wells(wh_sample)
+        folium_static(map_well)   
+        st.subheader('General Information')
         cols = list(wh1.columns)
         x = st.selectbox('X Variable',cols,index=14)
         y = st.selectbox('Y Variable',cols,index=13)
         color = st.selectbox('Color Variable',cols,index=6)
-        #wh=sanitize_dataframe(wh)
-        # st.altair_chart(alt.Chart(wh).mark_point().encode(
-        #     x=x,
-        #     y= y,
-        #     color=color).properties(width=700))#width=700,height=300))
         st.write(eda_plot(wh1,x,y,color))
        
 
@@ -102,28 +101,26 @@ def dispaly_eda():
         wp=sanitize_dataframe(wp)
         well_plot = single_Well_plot1(wells,wp)
         st.write(well_plot)
-    if eda_tab == 'Geo Info':
-        sample=st.slider('Number of well in the map',min_value=10,max_value=10000,value=100,step=1)
-        wh_sample=wh.sample(sample)
-        map_well = map_wells(wh_sample)
-        folium_static(map_well)
+    
+       
 
 
 def duc_analysis(wh,wp,wt):
         st.header('Datathon DUC Well Identification')
         st.sidebar.subheader('DUC Identification Menu')
         ducs,m1,m2,m3,m4,wellheader,wellproduction,perftreatment = duc_wells(wh,wp,wt)
-        options = ['General Information','Time Analysis','DUC Duration','More']
+        options = ['General Information','Time Analysis','DUC Duration','More About DUCs']
         nav = st.sidebar.radio('Nav',options)
+        ducs_final = duc_time(ducs,wellheader, wellproduction)
+        
         if nav == 'General Information':
-            
+            ddf= wh[wh['EPAssetsId'].isin(ducs)]
+            ddf= clean_pipeline(ddf)
             st.write(f'Number of wells with current Status not in ["Pumping", "Flowing", "Gas Lift"] : {m1}')
             st.write(f'Number of wells not in perf_treatment data nor in well_production data: {m2}') 
             st.write(f'Potential number of DUC wells using only the CompletionActivity criteria from perftreatment table: {m3}')
             st.write(f'Wells with no production that have also not been completed: {m4}')
             st.success(f'Total DUC wells in dataset:{len(ducs)}')
-            ddf= wh[wh['EPAssetsId'].isin(ducs)]
-            ddf= clean_pipeline(ddf)
             desc = ddf.describe().T
             #st.write(ddf.astype('object'))
             st.write(desc)
@@ -139,21 +136,35 @@ def duc_analysis(wh,wp,wt):
             x=x,
             y= y,
             color=color).properties(width=700,height=300))
+            st.subheader('Single Well Information')
+            uwi_list=st.checkbox('Show UWI lis',False)
+            if uwi_list:
+                st.write(ddf['UWI'])
+            well_uwi=st.text_input('Well UWI','-')
+            if well_uwi != '-':
+                single_well= info_single_well(well_uwi,wh)
+                st.write(single_well.astype('object').iloc[0])
         if nav == 'Time Analysis':
             ducs_final = duc_time(ducs,wellheader, wellproduction)
             desc = ducs_final.describe()
             st.subheader('Days of Uncompleted Status')
-            hist_days_uncomplete(ducs_final,step=50)
+            step= st.slider('Bins',min_value=5,max_value=100,value=30)
+            hist_days_uncomplete(ducs_final,step=step)
             st.subheader('Days of Uncompleted Status grouped by Period')
             ducs_binned(ducs_final)
         if nav =='DUC Duration':
             non_ducs_df=non_duc_wells_duration(wellheader,wellproduction,perftreatment,ducs)
-            st.subheader('Time of Uncompleted Status all wells')
-            hist_days_uncomplete2(non_ducs_df)
+            st.subheader('Time of Uncompleted Status For all Non-DUC wells')
+            step= st.slider('Bins',min_value=5,max_value=100,value=30)
+            hist_days_uncomplete2(non_ducs_df,step)
             st.subheader('Time of Uncompleted Status in the data set by Formation ')
             non_ducs_bins(non_ducs_df)
             facet = st.selectbox('Facet By:',['Formation','PSACAreaName','Field'],index=0)
             non_ducs_per_formation(non_ducs_df,25,facet)
+        if nav == 'More About DUCs':
+            #st.write(ducs_final.columns)
+            facet = st.selectbox('Facet By:',['Formation','PSACAreaName','Field','CurrentOperator'],index=3)
+            non_ducs_per_formation(ducs_final,25,facet)
             
 
 
@@ -189,25 +200,7 @@ def load_treatment():
      #clenaing of wt dataset
      return wt
 
-def clean_pipeline(df):
-    ## Select objects to convert to category type 
-    cat =list(df.dtypes[df.dtypes == 'object'].index)
-    if len(cat)>0:
-        df[cat] = df[cat].astype('category')
-        surface_columns=['Surf_LSD','Surf_Section','Surf_Township','Surf_Range','BH_LSD','BH_Section','BH_Township','BH_Range']
-        df[surface_columns]=df[surface_columns].astype(str)
-        df[surface_columns]=df[surface_columns].astype('category')
-    feature_selection = ['EPAssetsId', 'Province','UWI', 'CurrentOperator',
-       'CurrentStatus', 'WellType',
-        'Formation', 'Field', 'Pool',
-        'Surf_Location', 'Surf_Longitude',
-       'Surf_Latitude','GroundElevation', 'KBElevation', 'TotalDepth',
-       'SurfaceOwner', 'DrillingContractor', 'FinalDrillDate',
-       'RigReleaseDate', 'DaysDrilling', 'DrillMetresPerDay',
-       'WellProfile', 'PSACAreaCode', 'PSACAreaName',
-       'ProjectedDepth']
-    df = df[feature_selection]
-    return df
+
 
 
 def single_Well_plot1(well_id,df1):
@@ -274,19 +267,29 @@ def about_us():
     st.image(mh,width=200)
     st.markdown('''
     Md Alauddin is a PhD student at " the Centre for Risk, Integrity and Safety Engineering (C-RISE)" in the Department of Process Engineering, Memorial University of Newfoundland, Canada. His research interest includes abnormal situation management, fault detection and diagnosis, evolutionary computation, and data mining application in oil and gas systems. He is currently working on prediction and control of COVID-19 using stochastic modeling.  
-    **Contributions:** *Duc Identification and TVD competiton Strategy,Documentation*
-### Korang  
+    **Contributions:** *Duc Identification and TVD competiton Strategy,Documentation, Visualizations*
+### Korang:''')
+    km = Image.open('Img/korang.png')
+    st.image(km,width=200)
+    st.markdown('''
+Korang has been working in industrial projects for most of his career. He is a Professional
+Engineer (P.Eng.) with master’s degree in Mechanical Engineering. Through his career he
+has been working with disciplines and stakeholders in projects to gather meaningful project
+data that he used to provide information needed for making decision about the projects.
+With years of experience in projects he believes in the power of data efficacy and the
+important role the analytical skills play in information-based decision making. He is a perpetual learner
+and enjoys analyzing data and presenting the results with the power of visualization.  
  **Contributions:** *Duc Identification Strategy and TVD competiton,Documentation*''')
 
 def what_is_duc():
     st.markdown('''
-# Introduction
+## Introduction
 
 The DUC (Drilled but Uncompleted) wells play an important role in balancing the economy of oil and gas production by providing smoothing effect on the fluctuating difference between supply and demand in the market. 
 
 The subject of 2020 Datathon competition is identifying DUC wells.
 
-# DUC Well characteristics
+## DUC Well characteristics
 
 DUC wells are drilled but not completed! More specifically, these are wells that have reached the target depth and casings are installed to protect the well and the formation. The wells however are not completed which means the production casing is not installed and no other completion activities are performed to bring the well in production. This might suggest the criteria for identifying the wells, as follows:
 
@@ -298,29 +301,29 @@ DUC wells are drilled but not completed! More specifically, these are wells that
 - The well has no production. Any production record associated with a well disqualifies it as a DUC Well.     
     
 
-# Roadmap and strategy for DUC well modeling
+## Roadmap and strategy for DUC well modeling
 
 - DUCs will be identified using the criteria in above. The criteria will be coded to create a binary identifier to tag well that are DUC with 1 and the rest as 0. The process has two step filter application to the "wellHeader" subeset as the master list. 
     - First, all the wells from the "wellPerf" which meet the criteria for being through completion activities are removed from the master list resulting in an interim list.
     - Second, the wells from "wellProduction" which are showing production records (any product type) will be removed from the interim list, which results in a table listing Wells that are potentially qualified as DUC.
 
 
-# EDA
+## EDA
 
 Well header file will be the master list providing all the wells. before filtering for DUC wells, the subsets are manipulated for more suitable format and structure for exploratory data analysis (EDA) and subsequent modeling. 
 
-    1. Duplicate records exist in "wellProduction" table. Group by for ['EPAssetsId', 'ProdPeriod', 'ProductType'] with 'Volume' aggregrated performed to get rid of duplicate values
-    2. Table is transformed into wide format using production types
-    3. Table is summarised to create new columns for: 
-        a. min and max of production periods, 
-        b. count of production period.
-    4.  Table also aggregrated to create total production for each ['EPAssetsId', 'ProductType']
-        
-# DUC Wells Identifications
-## Workflow file
-  
-
+1. Duplicate records exist in "wellProduction" table. Group by for ['EPAssetsId', 'ProdPeriod', 'ProductType'] with 'Volume' aggregrated performed to get rid of duplicate values
+2. Table is transformed into wide format using production types
+3. Table is summarised to create new columns for: 
+    a. min and max of production periods, 
+    b. count of production period.
+4.  Table also aggregrated to create total production for each ['EPAssetsId', 'ProductType']
+    
+## DUC Wells Identifications Strategy
 ''' )
+    wf = Image.open('Img/workflow.png')
+    st.image(wf)
+
 
 
 
