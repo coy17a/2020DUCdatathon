@@ -15,6 +15,7 @@ plt.style.use('ggplot')
 def eda_plot(df,x,y,color):
     sns.scatterplot(x=x,y=y,hue=color,data=df)
     st.pyplot()
+    return ""
 def eda_plot2(df,x,y,color):
     df=sanitize_dataframe(df)
     plot= alt.Chart(df).mark_bar(size=5).encode(
@@ -43,13 +44,19 @@ def load_treatment():
      #clenaing of wt dataset
      return wt
 
-def dispaly_eda():
+@st.cache(persist=True)
+def load_production_eda():
+     wp = pd.read_csv("data/productioneda.csv",index_col=False)
+     #wp = pd.read_csv("data/WellProduction.csv",parse_dates=['ProdPeriod'],index_col=False)
+     #wp = wp.drop(columns=['WellHeader.Match'])
+     return wp
+
+def display_eda(wp,wh,wt):
     with st.spinner('Loading..'):
-        wp = load_production()
-        wh = load_header()
-        wt = load_treatment()
+        st.header('Exploration Data Analysis')
+        
     options =['Well Header','Production','Perforation Treatments']
-    eda_tab=st.radio('Select Dataset',options)
+    eda_tab=st.sidebar.radio('Select Dataset',options)
     
     if eda_tab == 'Well Header':
         desc = wh.describe()
@@ -70,28 +77,93 @@ def dispaly_eda():
        
 
     if eda_tab == 'Production':
-        st.subheader('Example: Well production by product type')
-        well_id = wp['EPAssetsId'].head(20).unique()
-        default_id = list(well_id[0:5])
-        wells = st.multiselect('Please Select wells',well_id)
-        wp=sanitize_dataframe(wp)
-        well_plot = single_Well_plot1(wells,wp)
-        st.write(well_plot)
+        wp_eda = load_production_eda()
+        st.subheader('Total Production')
+        options=['Formation','Province','WellType','Pool','WellProfile','PSACAreaName']
+        x_value=st.selectbox('X value',options,index=0,key='TotalP')
+        sns.barplot(x=x_value,y='Total Production',data=wp_eda, hue='ProdTypeT')
+        st.pyplot()
+        st.subheader('Average Production')
+        x_value2=st.selectbox('X value',options,index=0,key='AverageP')
+        sns.barplot(x=x_value2,y='Average Production',data=wp_eda,hue='ProdTypeA')
+        st.pyplot()
+        st.subheader('Single Well production by product type')
+        well_list=st.checkbox('Show well list',False)
+        if well_list:
+            options = wp['EPAssetsId'].head(5).unique()
+            well_id = st.selectbox('Please Select wells',options)
+            well_plot = single_Well_plot1(well_id,wp)
+            st.write(well_plot)
+        well_id=st.text_input('Well ID','-')
+        if well_id != '-':
+            well_id=int(well_id)
+            well_plot = single_Well_plot1(well_id,wp)
+            st.write(well_plot)
+    if eda_tab == 'Perforation Treatments':
+         activities,hist1,perf_plot=perf_analysys(wt)
+         st.subheader('Unique type of Activities')
+         st.write(activities.astype('object'))
+         st.subheader('Number of activities per Well')
+         step = st.slider('Bins',min_value=10,max_value=100,value=30)
+         hist_perf(hist1,step)
+         st.subheader('Most Common Activities')
+         total=perf_plot['Number of Acitvities'].sum()
+         st.write(f'Total Activities: {total}')
+         st.write(perf_plot.astype('object'))
+         st.subheader('Most Common Activities Plot')
+         activities=st.slider('Number Of top Activities',min_value=1,max_value=25,value=10)
+         top_activiteis(perf_plot,activities)
 
+def predictions():
+    st.set_option('deprecation.showfileUploaderEncoding', False)
+    st.subheader(' Predict DUC wells from new datasets')
+    uploaded_file = st.file_uploader("Upload Well Header CSV file", type="csv")
+    if uploaded_file is not None:
+        datecolumns = ['LicenceDate', 'ConfidentialReleaseDate','AbandonDate', 'SurfAbandonDate', 'SpudDate', 'FinalDrillDate', 'RigReleaseDate','StatusDate','CompletionDate'] 
+        wh = pd.read_csv(uploaded_file,parse_dates=datecolumns,index_col=False)
+        #st.write(data.head())
+    
+    uploaded_file2 = st.file_uploader("Upload Production CSV file", type="csv")
+    if uploaded_file2 is not None:
+        wp = pd.read_csv(uploaded_file2,parse_dates=['ProdPeriod'],index_col=False)
+        #st.write(production.head())
 
+    uploaded_file3= st.file_uploader("Upload PerfTreatment CSV file", type="csv")
+    if uploaded_file3 is not None:
+        wt= pd.read_csv(uploaded_file3,index_col=False,parse_dates=['ActivityDate'])
+        #st.write(perf.head())
+    st.subheader('Results')
+    if (uploaded_file != None) & (uploaded_file2 != None) & (uploaded_file3 != None):
+        selection=st.radio('Analysys',['EDA','DUCs'],index=1)
+        if selection=='EDA':
+            display_eda(wp,wh,wt)
+        else:
+            duc_analysis(wh,wp,wt)
+        
+def home():
+    st.title('DUC or Not!! ')
+    st.markdown('This web application was designed as part of the 202 DUC Datathon submission of the team Data Conquerors and shows the work performed in exploring and analyzing a dataset conformed of 10438 wells to determine possible drilled but uncompleted wells. With this information oil services companies can identify potential clients and/or forecast market size; For that, a prediction option is available in the main menu whereby simply dropping any data sets alike, real-time segregation can be done on the fly.')
+    image = Image.open('Img/duc.png')
+    
+    st.image(image,use_column_width=True)
+    st.subheader('Untapped Energy DUC Datathon 2020: Data Conquerors')
+    home = Image.open('Img/home.png')
+    st.image(home,use_column_width=True)
+        
+
+def hist_perf(hist,step):
+     plot = sns.distplot(hist['PerfShots'], kde=False, rug=False,bins=step);
+     plot.set(xlabel="Number Treatments", ylabel = "Number of Wells")
+     st.pyplot()
 
 def single_Well_plot1(well_id,df1):
-    df_well = df1[(df1['EPAssetsId'].isin(well_id)) & (df1['ProdType'] != 'Production Hours')]
-    chart= alt.Chart(df_well).mark_bar(size=5).encode(
-        x=alt.X('ProdPeriod',timeUnit='yearmonthdate'),
-        y='Volume',
-        color='ProdType',
-        facet=alt.Facet('EPAssetsId', columns=3)
-        ).properties(title='Wells',
-    width=180,
-    height=150
-    ).interactive()
-    return chart
+    df_well = df1[(df1['EPAssetsId']==well_id) & (df1['ProdType'] != 'Production Hours')]
+    fig, ax = plt.subplots(figsize = (12,6))    
+    fig = sns.barplot(x='ProdPeriod',y='Volume',hue='ProdType',data=df_well, ax=ax)
+    x_dates = df_well['ProdPeriod'].dt.strftime('%Y-%m-%d')
+    ax.set_xticklabels(labels=x_dates, rotation=45, ha='right')
+    st.pyplot() 
+    return ""  
 
 def map_wells(wh):
     latitude = 54.73
@@ -232,11 +304,11 @@ def duc_wells(wellheader,wellproduction,perftreatment,):
     # check number of wells remaining 
 
     m1 = subset_wellheader['EPAssetsId'].nunique()
-    # filtering wells not in perf_treatment nor in well_production from subset_wellheader
+    # filtering wells not in wt nor in well_production from subset_wellheader
     ducs = subset_wellheader[~subset_wellheader['EPAssetsId'].isin(perftreatment['EPAssetsId'])]
     ducs = ducs[~ducs['EPAssetsId'].isin(wellproduction['EPAssetsId'])]
     m2=ducs.shape[0]
-    #print ('number of wells not in perf_treatment data nor in well_production data ', )
+    #print ('number of wells not in wt data nor in well_production data ', )
     # filtering wells in perftreatment that have no production data
     ducs_perf = perftreatment[~perftreatment['EPAssetsId'].isin(wellproduction['EPAssetsId'])]
     #print('number of wells from perftreatment datatable that have no production data ', ducs_perf['EPAssetsId'].nunique())
@@ -418,26 +490,31 @@ def about_us():
     st.image(ij,width=200)
     st.markdown('''
     A Business Intelligence Analyst with approximately 8 years of experience as a Project Engineer within the Canadian Oil and Gas Industry delivering pipeline and facility projects across Alberta and British Columbia. I enjoy performing data cleaning, exploratory data analysis, and preparing data visualizations to provide actionable insights.    
-    **Contributions:** *Exploratory Data Analysis, DUC well Identification Code, DUC Identification Strategy and Visualizations*
+    **Contributions:** *Exploratory Data Analysis, DUC well Identification Code, DUC Identification Strategy and Visualizations*  
+    [Linkedin](https://www.linkedin.com/in/ijeoma-odoko-peng-meng-3b7b2430/)
 ### Alejandro Coy:''')
     image = Image.open('Img/me.jpeg')
     st.image(image,width=200)
     st.markdown('''
     I'am Chemical Engineer, Data Geek and Amateur Triathlete. I’ve been working on research, design, and implementation of new technologies for the heavy oil industry for the past 10 years.
     Since I worked on my bachelor’s thesis (where I analyzed thousands of flow measurements for gas natural mixtures), I’ve been passionate about data and the powerful insights obtained from experiments where the information is collected and process correctly.  
-    **Contributions:** *Streamlit App Code,Visualizations and TVD Kaggle Competition Strategy and Code*
+    **Contributions:** *Streamlit App Code, Exploratory Data Analysis, Visualizations and TVD Kaggle Competition Strategy and Code*  
+    [Linkedin](https://www.linkedin.com/in/luisalejandrocoy/)  
+    [AlejandroCoy.ca](https://www.alejandrocoy.ca)
 ### Gabriel Garcia:''')
     gb = Image.open('Img/Gabriel.png')
     st.image(gb,width=200)
     st.markdown('''
     A geoscience engineer with 11 years’ experience in the oil and gas industry as a data analyst, performing processing and interpretation of well logs reservoir characterization for basins in Canada, USA and Mexico; I can also hold my breath for almost 2 minutes. 
-    **Contributions:** *DUC Identification and TVD Competition Strategy,Documentation*
+    **Contributions:** *DUC Identification and TVD Competition Strategy,Documentation*  
+    [Linkedin](https://www.linkedin.com/in/gabriel-garcia-rosas/)
 ### Mohammed Alaudding:''')
     mh = Image.open('Img/Muhammad.png')
     st.image(mh,width=200)
     st.markdown('''
     Md Alauddin is a PhD student at " the Centre for Risk, Integrity and Safety Engineering (C-RISE)" in the Department of Process Engineering, Memorial University of Newfoundland, Canada. His research interest includes abnormal situation management, fault detection and diagnosis, evolutionary computation, and data mining application in oil and gas systems. He is currently working on prediction and control of COVID-19 using stochastic modeling.  
-    **Contributions:** *DUC Identification and TVD competition Strategy,Documentation, Visualizations*
+    **Contributions:** *DUC Identification and TVD competition Strategy,Documentation, Visualizations*  
+    [Linkedin](https://www.linkedin.com/in/mohammad-alauddin-002b6512/)
 ### Korang Modaressi:''')
     km = Image.open('Img/korang.png')
     st.image(km,width=200)
@@ -449,7 +526,8 @@ data that he used to provide information needed for making decision about the pr
 With years of experience in projects he believes in the power of data efficacy and the
 important role the analytical skills play in information-based decision making. He is a perpetual learner
 and enjoys analyzing data and presenting the results with the power of visualization.  
- **Contributions:** *DUC Identification Strategy and TVD competition,Documentation*''')
+ **Contributions:** *DUC Identification and TVD competition Strategy,Documentation*  
+ [Linkedin](https://www.linkedin.com/in/korang-modaressi/)''')
 
 def duc_analysis(wh,wp,wt):
         st.header('Datathon DUC Well Identification')
@@ -463,7 +541,7 @@ def duc_analysis(wh,wp,wt):
             ddf= wh[wh['EPAssetsId'].isin(ducs)]
             ddf= clean_pipeline(ddf)
             st.write(f'Number of wells with current Status not in ["Pumping", "Flowing", "Gas Lift"] : {m1}')
-            st.write(f'Number of wells not in perf_treatment data nor in well_production data: {m2}') 
+            st.write(f'Number of wells not in wt data nor in well_production data: {m2}') 
             st.write(f'Potential number of DUC wells using only the CompletionActivity criteria from perftreatment table: {m3}')
             st.write(f'Wells with no production that have also not been completed: {m4}')
             st.success(f'Total DUC wells in dataset:{len(ducs)}')
@@ -512,3 +590,20 @@ def duc_analysis(wh,wp,wt):
             facet = st.selectbox('Facet By:',['Formation','PSACAreaName','Field','CurrentOperator'],index=3)
             non_ducs_per_formation(ducs_final,25,facet)
             
+def perf_analysys(wt):
+    wt['ActivityType'] = wt['ActivityType'].astype('category')
+    wt=wt.iloc[:,0:8]
+    activities=wt['ActivityType'].unique()
+    activities=pd.DataFrame(activities)
+    hist1=wt.groupby('EPAssetsId').count().sort_values(by='PerfShots',ascending=False)
+    wt1=wt.loc[ :,['EPAssetsId', 'ActivityDate', 'ActivityType', 'PerfShots'] ]
+    perf_plot=wt1.groupby(['ActivityType']).count().sort_values('ActivityDate',ascending=False).reset_index()[['ActivityType','EPAssetsId']]
+    perf_plot.columns=['ActivityType','Number of Acitvities']
+   
+    return activities,hist1,perf_plot
+
+def top_activiteis(perf_plot,activities):
+    top=perf_plot.iloc[0:activities]
+    sns.barplot(x='Number of Acitvities',y='ActivityType', data=top, order=top['ActivityType'])
+    sns.despine(left=True, bottom=True)
+    st.pyplot()
