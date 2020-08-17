@@ -247,27 +247,27 @@ def about_us():
     ij = Image.open('Img/ijeoma.jpeg')
     st.image(ij,width=200)
     st.markdown('''
-    I am a Business Intelligence Analyst with approximately 8 years of experience as a Project Engineer within the Canadian Oil and Gas Industry delivering pipeline and facility projects across Alberta and British Columbia. I enjoy performing data cleaning, exploratory data analysis, and preparing data visualizations to provide actionable insights.    
-    **Contributions:** *DUC well identification Code, Duc Identificaiton Strategy and Visualizations*
+    A Business Intelligence Analyst with approximately 8 years of experience as a Project Engineer within the Canadian Oil and Gas Industry delivering pipeline and facility projects across Alberta and British Columbia. I enjoy performing data cleaning, exploratory data analysis, and preparing data visualizations to provide actionable insights.    
+    **Contributions:** *Exploratory Data Analysis, DUC well Identification Code, DUC Identification Strategy and Visualizations*
 ### Alejandro Coy:''')
     image = Image.open('Img/me.jpeg')
     st.image(image,width=200)
     st.markdown('''
     I’ve been working on research, design, and implementation of new technologies for the heavy oil industry for the past 10 years.
     Since I worked on my bachelor’s thesis (where I analyzed thousands of flow measurements for gas natural mixtures), I’ve been passionate about data and the powerful insights obtained from experiments where the information is collected and process correctly.  
-    **Contributions:** *Streamlit App Code,Visualizations and TVD Kaggle Competion Strategy and Code*
+    **Contributions:** *Streamlit App Code,Visualizations and TVD Kaggle Competition Strategy and Code*
 ### Gabriel:''')
     gb = Image.open('Img/Gabriel.png')
     st.image(gb,width=200)
     st.markdown('''
     A geoscience engineer with 11 years’ experience in the oil and gas industry as a data analyst, performing processing and interpretation of well logs reservoir characterization for basins in Canada, USA and Mexico; I can also hold my breath for almost 2 minutes. 
-    **Contributions:** *Duc Identification and TVD competiton Strategy,Documentation*
+    **Contributions:** *DUC Identification and TVD Competition Strategy,Documentation*
 ### Mohammed:''')
     mh = Image.open('Img/Muhammad.png')
     st.image(mh,width=200)
     st.markdown('''
     Md Alauddin is a PhD student at " the Centre for Risk, Integrity and Safety Engineering (C-RISE)" in the Department of Process Engineering, Memorial University of Newfoundland, Canada. His research interest includes abnormal situation management, fault detection and diagnosis, evolutionary computation, and data mining application in oil and gas systems. He is currently working on prediction and control of COVID-19 using stochastic modeling.  
-    **Contributions:** *Duc Identification and TVD competiton Strategy,Documentation, Visualizations*
+    **Contributions:** *DUC Identification and TVD competition Strategy,Documentation, Visualizations*
 ### Korang:''')
     km = Image.open('Img/korang.png')
     st.image(km,width=200)
@@ -279,7 +279,7 @@ data that he used to provide information needed for making decision about the pr
 With years of experience in projects he believes in the power of data efficacy and the
 important role the analytical skills play in information-based decision making. He is a perpetual learner
 and enjoys analyzing data and presenting the results with the power of visualization.  
- **Contributions:** *Duc Identification Strategy and TVD competiton,Documentation*''')
+ **Contributions:** *DUC Identification Strategy and TVD competition,Documentation*''')
 
 def what_is_duc():
     st.markdown('''
