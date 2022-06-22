@@ -4,7 +4,7 @@ seaborn==0.10.1
 streamlit==0.65.1
 streamlit_folium==0.1.0
 pandas==1.0.3
-numpy==1.18.5
+numpy==1.22.0
 matplotlib==3.2.2
 Pillow==7.2.0
 protobuf==3.13.0
